@@ -167,12 +167,23 @@ test('HMCL merged Forge and NeoForge profiles keep their loader and repair witho
   const id = 'Pack NeoForge';
   const game = path.join(runtime, 'versions', id);
   const store = new Store(path.join(root, 'state'), () => {});
-  const digest = (value: string) => createHash('sha1').update(value).digest('hex');
-  const download = (value: string) => ({
+  const digest = (value: string | Buffer) => createHash('sha1').update(value).digest('hex');
+  const download = (value: string | Buffer) => ({
     url: 'https://example.test/file',
     size: Buffer.byteLength(value),
     sha1: digest(value),
   });
+  const jar = (entry: string) => {
+    const zip = new AdmZip();
+    zip.addFile(entry, Buffer.from(entry));
+    return zip.toBuffer();
+  };
+  const client = jar('client.class');
+  const fml = jar('fml.class');
+  const write = async (file: string, value: Buffer) => {
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, value);
+  };
   const asset = 'asset';
   const index = JSON.stringify({
     objects: { fixture: { hash: digest(asset), size: asset.length } },
@@ -186,7 +197,7 @@ test('HMCL merged Forge and NeoForge profiles keep their loader and repair witho
           ...profile('game'),
           version: '1.21.1',
           priority: 0,
-          downloads: { client: download('client') },
+          downloads: { client: download(client) },
           assets: 'fixture',
           assetIndex: { id: 'fixture', ...download(index) },
         },
@@ -200,16 +211,16 @@ test('HMCL merged Forge and NeoForge profiles keep their loader and repair witho
           libraries: [
             {
               name: 'net.neoforged.fancymodloader:loader:4.0.24',
-              downloads: { artifact: { ...download('fml'), path: 'fixture/fml.jar' } },
+              downloads: { artifact: { ...download(fml), path: 'fixture/fml.jar' } },
             },
           ],
         },
       ],
     });
     const original = await fs.readFile(path.join(game, id + '.json'), 'utf8');
-    await put(game, id + '.jar', 'client');
+    await write(path.join(game, id + '.jar'), client);
     await put(game, 'mods/.keep', '');
-    await put(runtime, 'libraries/fixture/fml.jar', 'fml');
+    await write(path.join(runtime, 'libraries/fixture/fml.jar'), fml);
     await put(runtime, 'assets/indexes/fixture.json', index);
     await put(runtime, `assets/objects/${digest(asset).slice(0, 2)}/${digest(asset)}`, asset);
     const candidate = (await scanInstances(game)).candidates[0];
