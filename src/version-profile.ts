@@ -39,15 +39,17 @@ export function normalizeProfile(profile: Profile): Profile {
   );
   let result: Profile = profile.root === true && !profile.inheritsFrom ? {} : { ...profile };
   delete result.patches;
+  const applied: Profile[] = [];
   for (const patch of patches) {
     if (
       !patch ||
       typeof patch !== 'object' ||
       Array.isArray(patch) ||
       patch.patches?.length ||
-      patch.inheritsFrom
+      !inheritsAppliedPatch(patch, applied)
     )
       throw new Error('Unsupported nested instance patch.');
+    applied.push(patch);
     const arguments_ = {
       game: [...(result.arguments?.game || []), ...(patch.arguments?.game || [])],
       jvm: [...(result.arguments?.jvm || []), ...(patch.arguments?.jvm || [])],
@@ -64,6 +66,19 @@ export function normalizeProfile(profile: Profile): Profile {
     result.libraries = libraries;
   }
   return { ...result, id: profile.id, jar: profile.jar, inheritsFrom: profile.inheritsFrom };
+}
+
+/**
+ * HMCL merges loader profiles into a single file. A loader patch such as Forge or NeoForge
+ * keeps `inheritsFrom` pointing at the game patch from the same list (by its version, e.g.
+ * `1.20.1`). That reference is already satisfied once the earlier patch has been applied;
+ * any other `inheritsFrom` would require an external profile and stays unsupported.
+ */
+function inheritsAppliedPatch(patch: Profile, applied: Profile[]) {
+  const parent = patch.inheritsFrom;
+  if (parent === undefined || parent === null || parent === '') return true;
+  if (typeof parent !== 'string') return false;
+  return applied.some((item) => item.id === parent || item.version === parent);
 }
 
 export async function resolveGameVersion(root: string, version: string, signal?: AbortSignal) {

@@ -198,6 +198,38 @@ test('HMCL patch metadata accepts flat vanilla profiles and preserves library an
     assert.equal(normalized.mainClass, 'Loader');
     assert.equal(normalized.libraries[1].name, 'group:loader:2');
     assert.throws(() => normalizeProfile({ patches: [{ patches: [{}] }] }), /nested/);
+    const forge = normalizeProfile({
+      id: '1.20.1-Forge',
+      root: true,
+      patches: [
+        {
+          id: 'game',
+          version: '1.20.1',
+          priority: 0,
+          mainClass: 'net.minecraft.client.main.Main',
+          libraries: [{ name: 'com.mojang:brigadier:1.1.8' }],
+        },
+        {
+          id: 'forge',
+          version: '47.4.13',
+          priority: 30000,
+          inheritsFrom: '1.20.1',
+          mainClass: 'cpw.mods.bootstraplauncher.BootstrapLauncher',
+          arguments: { game: ['--launchTarget', 'forgeclient'] },
+          libraries: [{ name: 'net.minecraftforge:forge:1.20.1-47.4.13:universal' }],
+        },
+      ],
+    });
+    assert.equal(forge.mainClass, 'cpw.mods.bootstraplauncher.BootstrapLauncher');
+    assert.equal(forge.inheritsFrom, undefined);
+    assert.deepEqual(
+      forge.libraries.map((library: { name: string }) => library.name),
+      ['com.mojang:brigadier:1.1.8', 'net.minecraftforge:forge:1.20.1-47.4.13:universal'],
+    );
+    assert.throws(
+      () => normalizeProfile({ patches: [{ id: 'forge', inheritsFrom: '1.20.1' }] }),
+      /nested/,
+    );
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

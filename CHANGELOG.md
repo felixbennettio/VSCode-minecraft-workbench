@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.3 — 2026-11-25
+
+### Fixed
+
+- Import and launch HMCL Forge and NeoForge versions whose loader patch inherits from the game patch in the same profile, instead of skipping them as unsupported nested patches.
+
+### 修复
+
+- 支持导入和启动 HMCL 的 Forge／NeoForge 版本：加载器补丁继承同一配置中的游戏补丁时，不再作为不支持的嵌套补丁跳过。
+
 ## 0.5.2 — 2026-11-11
 
 ### Added
