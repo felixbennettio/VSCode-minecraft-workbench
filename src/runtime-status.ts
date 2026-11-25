@@ -39,7 +39,9 @@ export async function isRuntimeReady(instance: Instance, signal: AbortSignal) {
       !(await valid(within(path.join(root, 'libraries'), library.download.path), library.download))
     )
       return false;
-  const logging = version.logging?.client?.file;
+  // Launch only passes the shared log configuration when it exists. Launchers such as HMCL keep
+  // their own log4j2.xml beside the version instead, so preserved profiles do not require it.
+  const logging = instance.preserveVersion ? undefined : version.logging?.client?.file;
   if (
     logging &&
     !(await valid(folder.getPath('assets', 'log_configs', filename(logging.id)), logging))
