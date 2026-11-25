@@ -161,6 +161,105 @@ test('installed HMCL patch profiles import in place and by copy without reinstal
   }
 });
 
+test('HMCL merged Forge and NeoForge profiles keep their loader and repair without the installer', async () => {
+  const root = await temp();
+  const runtime = path.join(root, 'hmcl');
+  const id = 'Pack NeoForge';
+  const game = path.join(runtime, 'versions', id);
+  const store = new Store(path.join(root, 'state'), () => {});
+  const digest = (value: string) => createHash('sha1').update(value).digest('hex');
+  const download = (value: string) => ({
+    url: 'https://example.test/file',
+    size: Buffer.byteLength(value),
+    sha1: digest(value),
+  });
+  const asset = 'asset';
+  const index = JSON.stringify({
+    objects: { fixture: { hash: digest(asset), size: asset.length } },
+  });
+  try {
+    await writeJson(path.join(game, id + '.json'), {
+      id,
+      root: true,
+      patches: [
+        {
+          ...profile('game'),
+          version: '1.21.1',
+          priority: 0,
+          downloads: { client: download('client') },
+          assets: 'fixture',
+          assetIndex: { id: 'fixture', ...download(index) },
+        },
+        {
+          id: 'neoforge',
+          version: '21.1.77',
+          priority: 30000,
+          inheritsFrom: '1.21.1',
+          mainClass: 'cpw.mods.bootstraplauncher.BootstrapLauncher',
+          arguments: { game: ['--fml.neoForgeVersion', '21.1.77'] },
+          libraries: [
+            {
+              name: 'net.neoforged.fancymodloader:loader:4.0.24',
+              downloads: { artifact: { ...download('fml'), path: 'fixture/fml.jar' } },
+            },
+          ],
+        },
+      ],
+    });
+    const original = await fs.readFile(path.join(game, id + '.json'), 'utf8');
+    await put(game, id + '.jar', 'client');
+    await put(game, 'mods/.keep', '');
+    await put(runtime, 'libraries/fixture/fml.jar', 'fml');
+    await put(runtime, 'assets/indexes/fixture.json', index);
+    await put(runtime, `assets/objects/${digest(asset).slice(0, 2)}/${digest(asset)}`, asset);
+    const candidate = (await scanInstances(game)).candidates[0];
+    assert.equal(candidate.minecraft, '1.21.1');
+    assert.equal(candidate.loader, 'neoforge');
+    assert.equal(candidate.loaderVersion, '21.1.77');
+    const linked = await new InstanceImporter(store).import(candidate, 'link', signal());
+    assert.equal(linked.installed, true);
+    const requests: string[] = [];
+    const engine = new Minecraft(
+      store,
+      {
+        options: { concurrency: 2 },
+        json: async (url: string) => {
+          requests.push(url);
+          throw new Error('Unexpected network request');
+        },
+        download: async (url: string) => {
+          requests.push(url);
+          throw new Error('Unexpected download');
+        },
+      } as never,
+      {
+        ensure: async () => {
+          throw new Error('Repair must not run the loader installer');
+        },
+      } as never,
+      {} as never,
+      {
+        output: { append() {} },
+        run: async (_label: string, work: (s: AbortSignal, report: () => void) => Promise<void>) =>
+          work(signal(), () => {}),
+      } as never,
+      () => {},
+    );
+    (engine as unknown as { manifest: () => Promise<unknown> }).manifest = async () => ({
+      latest: { release: '1.21.1', snapshot: '1.21.1' },
+      versions: [],
+    });
+    linked.installed = true;
+    await engine.install(linked);
+    assert.deepEqual(requests, []);
+    assert.equal(linked.loader, 'neoforge');
+    assert.equal(await fs.readFile(path.join(game, id + '.json'), 'utf8'), original);
+  } finally {
+    store.dispose();
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
 test('HMCL patch metadata accepts flat vanilla profiles and preserves library and argument priority', async () => {
   const root = await temp();
   try {

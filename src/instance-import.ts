@@ -87,6 +87,31 @@ export function loaderInfo(
   }
   return { loader: 'vanilla' };
 }
+const patchLoaders: Record<string, Loader> = {
+  fabric: 'fabric',
+  quilt: 'quilt',
+  forge: 'forge',
+  neoforge: 'neoforge',
+};
+/**
+ * HMCL merged profiles name each loader patch. Recent Forge and NeoForge profiles no longer list
+ * the loader artifact itself as a library, so the patch is the reliable source for the loader.
+ */
+export function patchLoaderInfo(
+  chain: Json[],
+): { loader: Loader; loaderVersion?: string } | undefined {
+  for (const profile of chain) {
+    if (!Array.isArray(profile.patches)) continue;
+    const patch = profile.patches.find(
+      (p: Json) => p && typeof p.id === 'string' && Object.hasOwn(patchLoaders, p.id),
+    );
+    if (patch)
+      return {
+        loader: patchLoaders[patch.id],
+        loaderVersion: typeof patch.version === 'string' ? filename(patch.version) : undefined,
+      };
+  }
+}
 function gameVersion(chain: Json[]): string {
   for (const profile of chain) {
     for (const field of ['clientVersion', '_minecraftVersion', 'minecraftVersion'])
@@ -132,7 +157,7 @@ async function standard(root: string, id: string, override?: Json): Promise<Impo
   }
   const folder = path.join(root, 'versions', filename(id));
   const libraries = [...chain].reverse().flatMap((p) => normalizeProfile(p).libraries || []);
-  const info = loaderInfo(libraries, minecraft);
+  const info = patchLoaderInfo(chain) || loaderInfo(libraries, minecraft);
   const settings = await json(path.join(folder, 'hmclversion.cfg'));
   const pcl = parseIni(await text(path.join(folder, 'PCL', 'Setup.ini')));
   const isolated = await Promise.all(

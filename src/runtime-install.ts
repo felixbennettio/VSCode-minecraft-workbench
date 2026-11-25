@@ -28,8 +28,8 @@ import {
   UnavailableProfile,
 } from './version-repair';
 import { t } from './config';
-import { loaderInfo } from './instance-import';
-import { resolveGameVersion } from './version-profile';
+import { loaderInfo, patchLoaderInfo } from './instance-import';
+import { resolveGameVersion, versionChain } from './version-profile';
 import { isRuntimeReady } from './runtime-status';
 
 const exec = promisify(execFile);
@@ -345,7 +345,12 @@ export async function installRuntime(
       report(message);
       services.output.append(message + '\n');
     }
-    if (!rebuilt && ['forge', 'neoforge'].includes(instance.loader) && loaderVersion) {
+    if (
+      !rebuilt &&
+      ['forge', 'neoforge'].includes(instance.loader) &&
+      loaderVersion &&
+      !(await mergedLoaderProfile(root, versionId, instance.loader, signal))
+    ) {
       await repairVersionChain(root, instance.minecraft, signal, official);
       const base = await resolveGameVersion(root, instance.minecraft, signal);
       const jar = resolveMinecraftJarInstallFile(base);
@@ -380,4 +385,20 @@ export async function installRuntime(
   await rejectSymlinkParents(instance.directory, natives);
   await fs.rm(natives, { recursive: true, force: true });
   return { versionId, loaderVersion };
+}
+
+/**
+ * HMCL stores an installed Forge/NeoForge version as one merged profile whose loader patch
+ * already lists every runtime library with its download and hash. Repairing those files and the
+ * game patch is enough; rerunning the official installer and its processors would only rebuild
+ * files the profile does not reference.
+ */
+async function mergedLoaderProfile(
+  root: string,
+  versionId: string,
+  loader: Loader,
+  signal: AbortSignal,
+) {
+  const [profile] = await versionChain(root, versionId, signal).catch(() => []);
+  return patchLoaderInfo(profile ? [profile] : [])?.loader === loader;
 }

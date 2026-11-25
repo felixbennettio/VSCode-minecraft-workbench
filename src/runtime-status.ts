@@ -48,7 +48,11 @@ export async function isRuntimeReady(instance: Instance, signal: AbortSignal) {
   const assetId = version.assetIndex?.id || version.assets;
   if (assetId) {
     const file = folder.getAssetsIndex(filename(assetId));
-    if (!(await valid(file, version.assetIndex))) return false;
+    // Mojang has republished some asset indexes under the same id (for example `5`), so
+    // versions installed by another launcher at different times can record different hashes
+    // for one shared file. For preserved profiles, accept any index whose objects are present.
+    if (!(await valid(file, instance.preserveVersion ? undefined : version.assetIndex)))
+      return false;
     if ((await fs.stat(file)).size > 32 * 1024 ** 2) return false;
     let index;
     try {

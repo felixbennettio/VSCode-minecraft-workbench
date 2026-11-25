@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.4 — 2026-11-25
+
+### Fixed
+
+- Detect Forge and NeoForge for imported HMCL versions from their loader patch, so content filters and repair use the correct loader instead of vanilla.
+- Repair HMCL Forge and NeoForge versions from their merged profile without downloading the official installer or rerunning its processors.
+- Accept a shared asset index that another launcher refreshed under the same id when checking imported versions.
+
+### 修复
+
+- 从加载器补丁识别 HMCL 导入版本的 Forge／NeoForge，内容筛选和修复不再按原版处理。
+- 修复 HMCL 的 Forge／NeoForge 版本时直接使用合并配置，不再下载官方安装器或重新运行处理器。
+- 检查导入版本时，接受其他启动器以相同 ID 更新过的共享资源索引。
+
 ## 0.5.3 — 2026-11-25
 
 ### Fixed

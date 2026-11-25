@@ -2,7 +2,7 @@
   "name": "minecraft-workbench",
   "displayName": "Minecraft Workbench",
   "description": "%extension.description%",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "publisher": "Lopleec",
   "license": "MIT",
   "engines": {
