@@ -348,6 +348,7 @@ async function initialize(
     stop: (item) => ui.stop(item),
     install: (item) => ui.install(item),
     configureInstance: (item) => ui.configureInstance(item),
+    removeInstance: (item) => ui.removeInstance(item),
     deleteInstance: (item) => ui.deleteInstance(item),
     openInstance: (item) => ui.openInstance(item),
     gameLog: (item) => ui.gameLog(item),

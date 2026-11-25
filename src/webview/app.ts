@@ -2075,31 +2075,25 @@ function renderInstance() {
     h(
       'section',
       { class: 'danger-zone' },
-      h(
-        'h2',
-        {},
-        instance.linked ? L('Remove instance', '移除实例') : L('Delete instance', '删除实例'),
-      ),
+      h('h2', {}, L('Remove or delete instance', '移除或删除实例')),
       h(
         'p',
         { class: 'muted' },
-        instance.linked
-          ? L(
-              'Removes this registration and keeps the original game files.',
-              '只移除此登记，保留原有游戏文件。',
-            )
-          : L(
-              'Moves the instance folder to Trash when supported.',
-              '系统支持时，将实例目录移到废纸篓。',
-            ),
+        L(
+          'Remove only drops the Workbench registration and keeps every file. Delete moves the instance’s own folder to Trash; for instances managed in place that is its version folder, while shared libraries and assets are kept.',
+          '移除只删除工作台登记，所有文件保留。删除会把实例自己的目录移到废纸篓；原地管理的实例只删除其版本目录，共享运行库和资源会保留。',
+        ),
       ),
-      button(
-        instance.linked
-          ? L('Remove from Workbench…', '从工作台移除…')
-          : L('Delete instance…', '删除实例…'),
-        () => action('delete'),
-        'secondary danger',
-        running,
+      h(
+        'div',
+        { class: 'inline-actions' },
+        button(L('Remove from Workbench…', '从工作台移除…'), () => action('remove'), 'secondary', running),
+        button(
+          L('Delete instance…', '删除实例…'),
+          () => action('delete'),
+          'secondary danger',
+          running,
+        ),
       ),
     ),
   );

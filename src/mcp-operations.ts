@@ -53,10 +53,10 @@ export const mcpOperations: McpOperation[] = [
     name: 'instance_manage_selected',
     method: 'launcher.manageInstances',
     description:
-      'Move selected client instances to a group, stop them, repair them, or remove them. Removal requires stopped instances and native user confirmation. Files managed in place are kept.',
+      'Move selected client instances to a group, stop or repair them, remove their registrations (files kept) or delete them (own folders moved to Trash). Remove and delete require stopped instances and native user confirmation.',
     properties: {
       ids: { type: 'array', items: id, minItems: 1, maxItems: 2000 },
-      action: choice(['group', 'stop', 'repair', 'remove']),
+      action: choice(['group', 'stop', 'repair', 'remove', 'delete']),
       group: str('Group name; empty removes grouping. Omit to open native group selection.'),
     },
     required: ['ids', 'action'],
@@ -293,7 +293,7 @@ export const mcpOperations: McpOperation[] = [
     name: 'instance_action',
     method: 'action',
     description:
-      'Launch/stop/install, configure, duplicate, delete (confirmation), move, open directory/log, import/export .mrpack or files, check updates/conflicts, manage backups or open native management pages. Import/export prompts for file paths in VS Code.',
+      'Launch/stop/install, configure, duplicate, remove registration or delete files (confirmation), move, open directory/log, import/export .mrpack or files, check updates/conflicts, manage backups or open native management pages. Import/export prompts for file paths in VS Code.',
     properties: {
       ...instanceId,
       kind,
@@ -303,6 +303,7 @@ export const mcpOperations: McpOperation[] = [
         'install',
         'configure',
         'clone',
+        'remove',
         'delete',
         'directory',
         'move',
@@ -808,6 +809,7 @@ export const mcpOperations: McpOperation[] = [
         'stop',
         'install',
         'configureInstance',
+        'removeInstance',
         'deleteInstance',
         'openInstance',
         'gameLog',

@@ -406,20 +406,45 @@ export class Minecraft {
       ...new Set([...this.running.keys(), ...this.starting.keys(), ...this.installing.keys()]),
     ];
   }
-  async delete(instance: Instance) {
+  /** Removes the Workbench registration only; game files are never touched. */
+  async remove(instance: Instance) {
     this.assertIdle(instance);
-    if (!instance.linked)
-      await vscode.workspace.fs.delete(
-        vscode.Uri.file(instance.containerDirectory || instance.directory),
-        {
-          recursive: true,
-          useTrash: true,
-        },
-      );
     this.store.state.instances = this.store.state.instances.filter((i) => i.id !== instance.id);
     if (this.store.state.selectedInstance === instance.id)
       this.store.state.selectedInstance = this.store.state.instances[0]?.id;
     await this.store.save();
+  }
+  /**
+   * Folders moved to Trash by {@link delete}. Managed instances own their whole folder. For an
+   * instance managed in place, only its own version folder is deleted; shared libraries, assets
+   * and a shared game root are kept, as are versions other registrations still use.
+   */
+  async deletionTargets(instance: Instance): Promise<string[]> {
+    if (!instance.linked) return [instance.containerDirectory || instance.directory];
+    const root = path.resolve(runtimeDirectory(instance));
+    const versionId = instance.versionId;
+    if (!versionId) return [];
+    const folder = path.join(root, 'versions', filename(versionId));
+    const inside = (dir: string) =>
+      path.resolve(dir) === folder || path.resolve(dir).startsWith(folder + path.sep);
+    for (const other of this.store.state.instances) {
+      if (other.id === instance.id || path.resolve(runtimeDirectory(other)) !== root) continue;
+      if (inside(other.directory)) return [];
+      if (!other.versionId) continue;
+      const chain = await versionChain(root, other.versionId).catch(() => []);
+      if (chain.some((profile) => profile.id === versionId)) return [];
+    }
+    return [folder];
+  }
+  /** Moves the instance's own files to Trash, then removes its registration. */
+  async delete(instance: Instance) {
+    this.assertIdle(instance);
+    for (const target of await this.deletionTargets(instance))
+      await vscode.workspace.fs.delete(vscode.Uri.file(target), {
+        recursive: true,
+        useTrash: true,
+      });
+    await this.remove(instance);
   }
   async logs(instance: Instance) {
     const log = path.join(instance.directory, 'logs', 'latest.log');

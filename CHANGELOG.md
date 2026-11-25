@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.5 — 2026-11-25
+
+### Added
+
+- Separate **Remove** and **Delete** for instances. Remove only drops the Workbench registration and keeps every file. Delete moves the instance's own folder to Trash; for instances managed in place, that is its version folder, while shared libraries, assets and versions other instances depend on are kept.
+- Remove is available on each instance row, in the sidebar context menu, on the instance settings page, in batch management and through MCP.
+
+### 新增
+
+- 实例区分**移除**和**删除**。移除只删除工作台登记，所有文件保留；删除会把实例自己的目录移到废纸篓。原地管理的实例只删除其版本目录，共享运行库、资源和其他实例依赖的版本会保留。
+- 实例列表每行、侧栏右键菜单、实例设置页、批量管理和 MCP 都提供移除。
+
 ## 0.5.4 — 2026-11-25
 
 ### Fixed

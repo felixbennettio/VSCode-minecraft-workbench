@@ -27,7 +27,7 @@ export async function manageInstances(
     return instance;
   });
   const action = String(params.action);
-  if (!['group', 'stop', 'repair', 'remove'].includes(action))
+  if (!['group', 'stop', 'repair', 'remove', 'delete'].includes(action))
     throw new Error('Unknown instance action');
   if (action === 'group') {
     let group = params.group;
@@ -76,28 +76,55 @@ export async function manageInstances(
     }
     return { changed: instances.length, failed: [] };
   }
+  const names = instances
+    .slice(0, 20)
+    .map((instance) => instance.name)
+    .join('\n');
   if (action === 'remove') {
     for (const instance of instances) minecraft.assertIdle(instance);
-    const yes = t('Remove', '删除');
-    const owned = instances.filter((instance) => !instance.linked).length;
+    const yes = t('Remove', '移除');
     if (
       (await vscode.window.showWarningMessage(
         t(
-          `Remove ${instances.length} selected instances?`,
-          `删除所选的 ${instances.length} 个实例？`,
+          `Remove ${instances.length} selected instances from Workbench?`,
+          `从工作台移除所选的 ${instances.length} 个实例？`,
         ),
         {
           modal: true,
           detail:
             t(
-              `${owned} managed instance folder(s) will be moved to Trash. Files managed in place will be kept.`,
-              `${owned} 个托管实例目录会移入废纸篓，原地管理的实例保留文件。`,
+              'Only the registrations are removed. All game files are kept.',
+              '只移除登记，所有游戏文件都会保留。',
             ) +
             '\n\n' +
-            instances
-              .slice(0, 20)
-              .map((instance) => instance.name)
-              .join('\n'),
+            names,
+        },
+        yes,
+      )) !== yes
+    )
+      return { cancelled: true, changed: 0, failed: [] };
+  }
+  if (action === 'delete') {
+    for (const instance of instances) minecraft.assertIdle(instance);
+    const yes = t('Move to Trash', '移到废纸篓');
+    const folders = new Set<string>();
+    for (const instance of instances)
+      for (const target of await minecraft.deletionTargets(instance)) folders.add(target);
+    if (
+      (await vscode.window.showWarningMessage(
+        t(
+          `Delete ${instances.length} selected instances and their files?`,
+          `删除所选的 ${instances.length} 个实例及其文件？`,
+        ),
+        {
+          modal: true,
+          detail:
+            t(
+              `${folders.size} folder(s) will be moved to Trash. Shared libraries and assets are kept.`,
+              `${folders.size} 个目录会移入废纸篓，共享运行库和资源会保留。`,
+            ) +
+            '\n\n' +
+            [...folders].slice(0, 20).join('\n'),
         },
         yes,
       )) !== yes
@@ -119,6 +146,7 @@ export async function manageInstances(
         try {
           if (action === 'stop') await minecraft.stop(instance);
           else if (action === 'repair') await minecraft.install(instance);
+          else if (action === 'remove') await minecraft.remove(instance);
           else await minecraft.delete(instance);
           changed++;
         } catch (error) {

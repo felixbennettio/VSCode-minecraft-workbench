@@ -2,7 +2,7 @@
   "name": "minecraft-workbench",
   "displayName": "Minecraft Workbench",
   "description": "%extension.description%",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "publisher": "Lopleec",
   "license": "MIT",
   "engines": {
@@ -174,14 +174,26 @@
         "icon": "$(settings-gear)"
       },
       {
+        "command": "minecraftWorkbench.removeInstance",
+        "title": "Remove Instance from Workbench",
+        "category": "Minecraft Workbench",
+        "icon": "$(close)"
+      },
+      {
+        "command": "minecraftWorkbench.removeInstance.zh",
+        "title": "从工作台移除实例",
+        "category": "Minecraft Workbench",
+        "icon": "$(close)"
+      },
+      {
         "command": "minecraftWorkbench.deleteInstance",
-        "title": "Delete Instance",
+        "title": "Delete Instance and Files",
         "category": "Minecraft Workbench",
         "icon": "$(trash)"
       },
       {
         "command": "minecraftWorkbench.deleteInstance.zh",
-        "title": "删除实例",
+        "title": "删除实例及文件",
         "category": "Minecraft Workbench",
         "icon": "$(trash)"
       },
@@ -1300,6 +1312,16 @@
           "group": "manage"
         },
         {
+          "command": "minecraftWorkbench.removeInstance",
+          "when": "(viewItem == instance && minecraftWorkbench.language != zh-cn) && minecraftWorkbench.agreementsAccepted",
+          "group": "manage"
+        },
+        {
+          "command": "minecraftWorkbench.removeInstance.zh",
+          "when": "(viewItem == instance && minecraftWorkbench.language == zh-cn) && minecraftWorkbench.agreementsAccepted",
+          "group": "manage"
+        },
+        {
           "command": "minecraftWorkbench.deleteInstance",
           "when": "(viewItem == instance && minecraftWorkbench.language != zh-cn) && minecraftWorkbench.agreementsAccepted",
           "group": "manage"
@@ -1476,6 +1498,14 @@
         {
           "command": "minecraftWorkbench.configureInstance.zh",
           "when": "(minecraftWorkbench.language == zh-cn) && minecraftWorkbench.agreementsAccepted"
+        },
+        {
+          "command": "minecraftWorkbench.removeInstance",
+          "when": "(false) && minecraftWorkbench.agreementsAccepted"
+        },
+        {
+          "command": "minecraftWorkbench.removeInstance.zh",
+          "when": "(false) && minecraftWorkbench.agreementsAccepted"
         },
         {
           "command": "minecraftWorkbench.deleteInstance",

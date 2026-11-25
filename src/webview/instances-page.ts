@@ -148,8 +148,14 @@ export function renderInstances(main: HTMLElement, ctx: PageContext) {
         working || !selected.size,
       ),
       ctx.button(
-        L('Remove…', '删除…'),
+        L('Remove…', '移除…'),
         () => operate('remove'),
+        'secondary',
+        working || !selected.size,
+      ),
+      ctx.button(
+        L('Delete…', '删除…'),
+        () => operate('delete'),
         'text-button danger',
         working || !selected.size,
       ),
@@ -258,6 +264,16 @@ export function renderInstances(main: HTMLElement, ctx: PageContext) {
           },
           'secondary',
           working,
+        ),
+        ctx.button(
+          L('Remove', '移除'),
+          async () => {
+            await ctx.request('action', { action: 'remove', instanceId: instance.id });
+            await ctx.refresh();
+            if (ctx.current()) update();
+          },
+          'text-button',
+          working || status !== 'stopped',
         ),
       ),
     );

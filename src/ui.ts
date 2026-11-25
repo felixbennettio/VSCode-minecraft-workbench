@@ -412,26 +412,57 @@ export class UI {
   async gameLog(item?: Item) {
     await this.minecraft.logs(await this.instance(item));
   }
+  async removeInstance(item?: Item) {
+    const instance = await this.instance(item);
+    this.idle(instance);
+    const yes = t('Remove', '移除');
+    if (
+      (await vscode.window.showWarningMessage(
+        t(
+          `Remove “${instance.name}” from Workbench?`,
+          `从工作台移除“${instance.name}”？`,
+        ),
+        {
+          modal: true,
+          detail: t(
+            'Only the registration is removed. Game files, worlds and mods stay on disk and can be imported again.',
+            '只移除登记，游戏文件、存档和模组都保留在磁盘上，之后可以重新导入。',
+          ),
+        },
+        yes,
+      )) === yes
+    )
+      await this.minecraft.remove(instance);
+  }
   async deleteInstance(item?: Item) {
     const instance = await this.instance(item);
     this.idle(instance);
-    const yes = instance.linked
-      ? t('Remove from list', '从列表移除')
-      : t('Move to Trash', '移到废纸篓');
+    const targets = await this.minecraft.deletionTargets(instance);
+    const yes = t('Move to Trash', '移到废纸篓');
+    const detail = targets.length
+      ? t(
+          `These folders will be moved to Trash:\n${targets.join('\n')}` +
+            (instance.linked
+              ? '\n\nShared libraries, assets and other versions in the game directory are kept. The original launcher will no longer see this version.'
+              : ''),
+          `以下目录会移到废纸篓：\n${targets.join('\n')}` +
+            (instance.linked
+              ? '\n\n游戏目录里的共享运行库、资源和其他版本会保留。原启动器将不再看到此版本。'
+              : ''),
+        )
+      : t(
+          'This instance has no folder of its own to delete (its version is shared with another instance or the whole game directory is shared), so only the registration will be removed.',
+          '此实例没有可单独删除的目录（版本被其他实例共用，或使用整个共享游戏目录），只会移除登记。',
+        );
     if (
       (await vscode.window.showWarningMessage(
-        instance.linked
-          ? t(
-              `Remove “${instance.name}” from Workbench? Its files will be kept.`,
-              `从工作台移除“${instance.name}”？游戏文件会保留。`,
-            )
-          : t(
-              `Delete “${instance.name}” and its game files?`,
-              `删除“${instance.name}”及其游戏文件？`,
-            ),
-        { modal: true },
-        yes,
-      )) === yes
+        t(
+          `Delete “${instance.name}” and its game files?`,
+          `删除“${instance.name}”及其游戏文件？`,
+        ),
+        { modal: true, detail },
+        targets.length ? yes : t('Remove', '移除'),
+      )) !== undefined
     )
       await this.minecraft.delete(instance);
   }

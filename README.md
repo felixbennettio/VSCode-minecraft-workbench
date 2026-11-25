@@ -113,7 +113,7 @@ Managed Modrinth/CurseForge pack files retain their download or local-source rec
 
 Memory is adjusted **after creation**, in **Instance settings**, or globally in VS Code Settings. By default, minimum and maximum memory are `0` (automatic): the maximum uses **25% of system RAM**, rounded down to 128 MB and capped at 8 GiB; the minimum scales with it, usually 256–1024 MB. Change the percentage globally, or turn off **Use global memory settings** to set an instance's own limits. Explicit manual values take precedence.
 
-Stop a running instance before changing its content, versions or restoring worlds. Restore automatically backs up the current worlds first. Deleting an owned instance moves its instance folder to the operating system trash when supported. Removing an instance managed in place keeps its files.
+Stop a running instance before changing its content, versions or restoring worlds. Restore automatically backs up the current worlds first. **Remove** drops only the Workbench registration and keeps every file. **Delete** moves the instance's own folder to the operating system trash when supported; for an instance managed in place that is its version folder, while shared libraries, assets and versions other instances depend on are kept.
 
 Java selection uses the **instance override → global default → automatic detection/download** order. Instance Java is optional. Changing other instance settings preserves an existing override; clear the instance field to return to the global default.
 
@@ -388,7 +388,7 @@ Modrinth / CurseForge 整合包保留可管理文件的下载或本地来源记�
 
 通过侧栏 **语言** 或命令面板 **切换语言** 即时切换；也可在插件设置中选择语言。语言可独立于 VS Code 设置。
 
-修改内容、版本或恢复存档前需停止实例。恢复前自动备份当前存档。删除实例会将整个游戏目录移至系统废纸篓（系统支持时）。
+修改内容、版本或恢复存档前需停止实例。恢复前自动备份当前存档。**移除**只删除工作台登记，所有文件保留；**删除**会把实例自己的目录移至系统废纸篓（系统支持时）。原地管理的实例只删除其版本目录，共享运行库、资源和其他实例依赖的版本会保留。
 
 ### 账户与 Microsoft 登录
 

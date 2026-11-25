@@ -720,6 +720,7 @@ export class Workbench implements vscode.Disposable {
           install: () => this.ui.install(item),
           configure: () => this.ui.configureInstance(item),
           clone: () => this.ui.cloneInstance(item),
+          remove: () => this.ui.removeInstance(item),
           delete: () => this.ui.deleteInstance(item),
           directory: () => this.ui.openInstance(item),
           move: () =>

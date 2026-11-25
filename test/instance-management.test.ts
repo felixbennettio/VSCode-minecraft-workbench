@@ -109,7 +109,7 @@ test('failed group persistence restores the previous group for all selected inst
   }
 });
 
-test('bulk removal confirms once, keeps linked files and rejects running instances before prompting', async () => {
+test('bulk deletion confirms once, keeps linked files and rejects running instances before prompting', async () => {
   const f = await fixture();
   const engine = new Minecraft(
     f.store,
@@ -132,7 +132,25 @@ test('bulk removal confirms once, keeps linked files and rejects running instanc
     },
   );
   try {
-    const request = { ids: ['one', 'two', 'linked'], action: 'remove' };
+    confirm.mock.mockImplementation(async (...args: unknown[]) => args[2]);
+    const removed = await manageInstances(f.store, engine, jobs as never, {
+      ids: ['one'],
+      action: 'remove',
+    });
+    assert.equal(removed.changed, 1);
+    assert.equal(remove.mock.callCount(), 0);
+    assert.equal(await fs.readFile(path.join(f.root, 'one', 'world.txt'), 'utf8'), 'keep');
+    f.store.state.instances.unshift({
+      id: 'one',
+      name: 'one',
+      directory: path.join(f.root, 'one'),
+      minecraft: '1.20.1',
+      loader: 'fabric',
+      createdAt: '',
+    } as Instance);
+    confirm.mock.mockImplementation(async () => undefined);
+    confirm.mock.resetCalls();
+    const request = { ids: ['one', 'two', 'linked'], action: 'delete' };
     await manageInstances(f.store, engine, jobs as never, request);
     assert.equal(f.store.state.instances.length, 3);
     assert.equal(remove.mock.callCount(), 0);
@@ -153,6 +171,85 @@ test('bulk removal confirms once, keeps linked files and rejects running instanc
     confirm.mock.restore();
     remove.mock.restore();
     await f.close();
+  }
+});
+
+test('remove keeps every file while delete trashes only the in-place version folder it owns', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mc-instance-delete-'));
+  const store = new Store(path.join(root, 'state'), () => {});
+  const game = path.join(root, '.minecraft');
+  const version = (id: string, profile: Record<string, unknown> = {}) =>
+    fs
+      .mkdir(path.join(game, 'versions', id), { recursive: true })
+      .then(() =>
+        fs.writeFile(
+          path.join(game, 'versions', id, `${id}.json`),
+          JSON.stringify({ id, ...profile }),
+        ),
+      );
+  await version('1.20.1');
+  await version('Pack', { inheritsFrom: '1.20.1' });
+  await version('Solo');
+  await fs.mkdir(path.join(game, 'libraries'), { recursive: true });
+  await fs.writeFile(path.join(game, 'libraries', 'shared.jar'), 'keep');
+  const linked = (id: string, versionId: string, directory = path.join(game, 'versions', versionId)) =>
+    ({
+      id,
+      name: id,
+      directory,
+      runtimeDirectory: game,
+      versionId,
+      preserveVersion: true,
+      linked: true,
+      minecraft: '1.20.1',
+      loader: 'vanilla',
+      createdAt: '',
+    }) as Instance;
+  store.state.instances = [
+    linked('base', '1.20.1', game),
+    linked('pack', 'Pack'),
+    linked('solo', 'Solo'),
+    linked('kept', 'Solo'),
+  ];
+  const engine = new Minecraft(store, {} as never, {} as never, {} as never, {} as never, () => {});
+  vscode.workspace.fs ||= {};
+  vscode.workspace.fs.delete ||= async () => {};
+  const trashed: string[] = [];
+  const remove = mock.method(
+    vscode.workspace.fs,
+    'delete',
+    async (uri: { fsPath: string }, options: { useTrash: boolean }) => {
+      assert.equal(options.useTrash, true);
+      trashed.push(uri.fsPath);
+      await fs.rm(uri.fsPath, { recursive: true });
+    },
+  );
+  const byId = (id: string) => store.state.instances.find((instance) => instance.id === id)!;
+  try {
+    assert.deepEqual(await engine.deletionTargets(byId('base')), []);
+    assert.deepEqual(await engine.deletionTargets(byId('solo')), []);
+    await engine.remove(byId('kept'));
+    assert.deepEqual(trashed, []);
+    assert.ok(await fs.stat(path.join(game, 'versions', 'Solo')));
+    assert.deepEqual(await engine.deletionTargets(byId('solo')), [
+      path.join(game, 'versions', 'Solo'),
+    ]);
+    await engine.delete(byId('solo'));
+    await engine.delete(byId('base'));
+    assert.deepEqual(trashed, [path.join(game, 'versions', 'Solo')]);
+    assert.deepEqual(await engine.deletionTargets(byId('pack')), [
+      path.join(game, 'versions', 'Pack'),
+    ]);
+    assert.equal(await fs.readFile(path.join(game, 'libraries', 'shared.jar'), 'utf8'), 'keep');
+    assert.ok(await fs.stat(path.join(game, 'versions', '1.20.1')));
+    assert.deepEqual(
+      store.state.instances.map((instance) => instance.id),
+      ['pack'],
+    );
+  } finally {
+    remove.mock.restore();
+    store.dispose();
+    await fs.rm(root, { recursive: true, force: true });
   }
 });
 
