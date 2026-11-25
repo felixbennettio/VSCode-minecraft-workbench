@@ -418,10 +418,7 @@ export class UI {
     const yes = t('Remove', '移除');
     if (
       (await vscode.window.showWarningMessage(
-        t(
-          `Remove “${instance.name}” from Workbench?`,
-          `从工作台移除“${instance.name}”？`,
-        ),
+        t(`Remove “${instance.name}” from Workbench?`, `从工作台移除“${instance.name}”？`),
         {
           modal: true,
           detail: t(
@@ -456,10 +453,7 @@ export class UI {
         );
     if (
       (await vscode.window.showWarningMessage(
-        t(
-          `Delete “${instance.name}” and its game files?`,
-          `删除“${instance.name}”及其游戏文件？`,
-        ),
+        t(`Delete “${instance.name}” and its game files?`, `删除“${instance.name}”及其游戏文件？`),
         { modal: true, detail },
         targets.length ? yes : t('Remove', '移除'),
       )) !== undefined

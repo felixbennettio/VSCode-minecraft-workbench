@@ -178,21 +178,17 @@ test('remove keeps every file while delete trashes only the in-place version fol
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'mc-instance-delete-'));
   const store = new Store(path.join(root, 'state'), () => {});
   const game = path.join(root, '.minecraft');
-  const version = (id: string, profile: Record<string, unknown> = {}) =>
-    fs
-      .mkdir(path.join(game, 'versions', id), { recursive: true })
-      .then(() =>
-        fs.writeFile(
-          path.join(game, 'versions', id, `${id}.json`),
-          JSON.stringify({ id, ...profile }),
-        ),
-      );
+  const version = async (id: string, profile: Record<string, unknown> = {}) => {
+    await fs.mkdir(path.join(game, 'versions', id), { recursive: true });
+    const file = path.join(game, 'versions', id, `${id}.json`);
+    await fs.writeFile(file, JSON.stringify({ id, ...profile }));
+  };
   await version('1.20.1');
   await version('Pack', { inheritsFrom: '1.20.1' });
   await version('Solo');
   await fs.mkdir(path.join(game, 'libraries'), { recursive: true });
   await fs.writeFile(path.join(game, 'libraries', 'shared.jar'), 'keep');
-  const linked = (id: string, versionId: string, directory = path.join(game, 'versions', versionId)) =>
+  const linked = (id: string, versionId: string, directory = path.join(game, 'versions', id)) =>
     ({
       id,
       name: id,
@@ -207,9 +203,9 @@ test('remove keeps every file while delete trashes only the in-place version fol
     }) as Instance;
   store.state.instances = [
     linked('base', '1.20.1', game),
-    linked('pack', 'Pack'),
-    linked('solo', 'Solo'),
-    linked('kept', 'Solo'),
+    linked('pack', 'Pack', path.join(game, 'versions', 'Pack')),
+    linked('solo', 'Solo', path.join(game, 'versions', 'Solo')),
+    linked('kept', 'Solo', path.join(game, 'versions', 'Solo')),
   ];
   const engine = new Minecraft(store, {} as never, {} as never, {} as never, {} as never, () => {});
   vscode.workspace.fs ||= {};
@@ -246,6 +242,7 @@ test('remove keeps every file while delete trashes only the in-place version fol
       store.state.instances.map((instance) => instance.id),
       ['pack'],
     );
+    assert.equal((await fs.readdir(path.join(game, 'versions'))).sort().join(), '1.20.1,Pack');
   } finally {
     remove.mock.restore();
     store.dispose();

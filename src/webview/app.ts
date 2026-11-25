@@ -2087,7 +2087,12 @@ function renderInstance() {
       h(
         'div',
         { class: 'inline-actions' },
-        button(L('Remove from Workbench…', '从工作台移除…'), () => action('remove'), 'secondary', running),
+        button(
+          L('Remove from Workbench…', '从工作台移除…'),
+          () => action('remove'),
+          'secondary',
+          running,
+        ),
         button(
           L('Delete instance…', '删除实例…'),
           () => action('delete'),
