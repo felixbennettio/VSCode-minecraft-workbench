@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.6 — 2026-11-25
+
+### Fixed
+
+- Saving or installing from **Install / change version** for an existing instance no longer fails with "Content operation already in progress".
+- **Install** on an imported instance checks and completes its own version directly instead of opening the version picker.
+
+### 修复
+
+- 在已有实例的**安装 / 更改版本**页保存或安装时，不再报“内容操作正在进行”。
+- 导入实例的**安装**会直接校验并补齐其原有版本，不再打开版本选择页。
+
 ## 0.5.5 — 2026-11-25
 
 ### Added

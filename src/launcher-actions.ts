@@ -193,7 +193,8 @@ export class LauncherActions {
           }
           return { instance: result, installError };
         };
-        if (params.edit === true) return this.ui.content.exclusive(selected(), save);
+        // InstanceSetup.save and Minecraft.install each check that the instance is idle,
+        // including its content lock, so holding that lock here made every edit fail.
         return save();
       }
       case 'launcher.clientId': {

@@ -250,6 +250,54 @@ test('remove keeps every file while delete trashes only the in-place version fol
   }
 });
 
+test('saving settings for an idle instance is not blocked by its own content lock', async () => {
+  const f = await fixture();
+  const instance = f.store.state.instances[0];
+  const locks = new Set<string>();
+  const content = {
+    exclusive: async (target: Instance, work: () => Promise<unknown>) => {
+      locks.add(target.id);
+      try {
+        return await work();
+      } finally {
+        locks.delete(target.id);
+      }
+    },
+  };
+  const engine = new Minecraft(
+    f.store,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    () => {},
+    undefined,
+    undefined,
+    (target: Instance) => locks.has(target.id),
+  );
+  (engine as unknown as { manifest: () => Promise<unknown> }).manifest = async () => ({
+    latest: { release: '1.20.1', snapshot: '1.20.1' },
+    versions: [{ id: '1.20.1', type: 'release', url: '', releaseTime: '' }],
+  });
+  (engine as unknown as { loaders: () => Promise<string[]> }).loaders = async () => ['0.16.10'];
+  const actions = new LauncherActions(f.store, engine, { jobs, content } as never);
+  try {
+    const value = {
+      name: 'Renamed',
+      minecraft: '1.20.1',
+      loader: 'fabric',
+      loaderVersion: '0.16.10',
+    };
+    const params = { value, edit: true };
+    const result = (await actions.handle('launcher.saveSetup', params, instance)) as {
+      instance: Instance;
+    };
+    assert.equal(result.instance.name, 'Renamed');
+  } finally {
+    await f.close();
+  }
+});
+
 test('bulk repair reports per-instance failures without skipping other selected instances', async () => {
   const f = await fixture();
   const visited: string[] = [];

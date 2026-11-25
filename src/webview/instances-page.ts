@@ -260,6 +260,9 @@ export function renderInstances(main: HTMLElement, ctx: PageContext) {
               await ctx.request('action', { action: 'stop', instanceId: instance.id });
             else if (instance.installed)
               await ctx.request('action', { action: 'launch', instanceId: instance.id });
+            // Imported versions keep their own profile; install checks and fills its files.
+            else if (instance.preserveVersion)
+              await ctx.request('action', { action: 'install', instanceId: instance.id });
             else await ctx.navigate('version');
           },
           'secondary',
